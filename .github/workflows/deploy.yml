@@ -5,13 +5,22 @@ on:
     branches:
       - main
 
+  pull_request:
+    branches:
+      - main
+
 jobs:
-  test-and-deploy:
+  test:
     runs-on: ubuntu-latest
 
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
 
       - name: Install dependencies
         run: npm install
@@ -22,6 +31,15 @@ jobs:
       - name: Run tests
         run: npm test
 
+  deploy:
+    needs: test
+    runs-on: ubuntu-latest
+    if: ${{ success() }}
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
       - name: Deploy to VPS
         uses: appleboy/ssh-action@master
         with:
@@ -30,6 +48,6 @@ jobs:
           key: ${{ secrets.SSH_KEY }}
           script: |
             cd /root/admis
-            git pull
+            git pull origin main
             npm install
             pm2 restart myapp
